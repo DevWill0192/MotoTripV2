@@ -3,11 +3,13 @@ import { CircleUserRound, LocateFixed, MapPin, MapPinned, Menu, Minus, Navigatio
 import { Circle, MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import demoRoadGeometry from "./demo-route.json";
+import { requestApi } from "./api.js";
 import { distanceMeters, formatDistance, formatDuration, routeProgress } from "./geo.js";
 import { geolocationErrorMessage, shouldPublishLocation } from "./gps.js";
 import { createInviteUrl, readInviteCode } from "./invites.js";
 
-const API_URL = import.meta.env.VITE_API_URL || "";
+const API_URL = (import.meta.env.VITE_API_URL || "").trim().replace(/\/$/, "");
+const IS_DEVELOPMENT = import.meta.env.DEV;
 const demoOrigin = { lat: 40.17918, lng: 44.499357 };
 const demoDestination = { lat: 40.562717, lng: 45.010458 };
 const defaultCenter = [demoOrigin.lat, demoOrigin.lng];
@@ -157,13 +159,11 @@ function EntryScreen({ onSession, onDemo }) {
     setError("");
     try {
       const endpoint = joining ? "/api/rooms/join" : "/api/rooms/create";
-      const response = await fetch(`${API_URL}${endpoint}`, {
+      const result = await requestApi(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(joining ? { name, code } : { name }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "No se pudo acceder a la sala.");
+      }, { baseUrl: API_URL, isDevelopment: IS_DEVELOPMENT });
       const nextSession = { ...result, demo: false };
       localStorage.setItem("moto-trips-session", JSON.stringify(nextSession));
       window.history.replaceState({}, "", window.location.pathname);
@@ -258,6 +258,10 @@ function App() {
 
   useEffect(() => {
     if (!session || session.demo) return undefined;
+    if (!API_URL && !IS_DEVELOPMENT) {
+      setSocketStatus("disconnected");
+      return undefined;
+    }
     let active = true;
 
     function attachSocket(client) {
@@ -406,12 +410,10 @@ function App() {
     if (!session.demo) {
       setLeaving(true);
       try {
-        const response = await fetch(`${API_URL}/api/rooms/leave`, {
+        await requestApi("/api/rooms/leave", {
           method: "POST",
           headers: { Authorization: `Bearer ${session.accessToken}` },
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "No se pudo salir del grupo.");
+        }, { baseUrl: API_URL, isDevelopment: IS_DEVELOPMENT });
       } catch (error) {
         setGpsError(error.message || "No se pudo confirmar la salida del grupo.");
         setLeaving(false);
@@ -471,11 +473,9 @@ function App() {
     setSearchError("");
     setSearchResults((previous) => ({ ...previous, [field]: [] }));
     try {
-      const response = await fetch(`${API_URL}/api/geocode?q=${encodeURIComponent(query.trim())}`, {
+      const result = await requestApi(`/api/geocode?q=${encodeURIComponent(query.trim())}`, {
         headers: { Authorization: `Bearer ${session.accessToken}` },
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "No se pudo buscar el lugar.");
+      }, { baseUrl: API_URL, isDevelopment: IS_DEVELOPMENT });
       if (field === "origin") setSearchResults((previous) => ({ ...previous, origin: result.results }));
       else setSearchResults((previous) => ({ ...previous, destination: result.results }));
       if (!result.results.length) setSearchError("No encontramos ese lugar. Prueba con otra dirección o barrio.");
@@ -528,16 +528,14 @@ function App() {
     setRouteLoading(true);
     setRouteError("");
     try {
-      const response = await fetch(`${API_URL}/api/routes/calculate`, {
+      const result = await requestApi("/api/routes/calculate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.accessToken}`,
         },
         body: JSON.stringify({ origin, destination, originLabel, destinationLabel }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "No se pudo calcular la ruta.");
+      }, { baseUrl: API_URL, isDevelopment: IS_DEVELOPMENT });
       const acknowledgement = await new Promise((resolve) => {
         const socket = socketRef.current;
         if (!socket?.connected) return resolve({ ok: false, error: "Reconecta con la sala antes de compartir la ruta." });
