@@ -59,7 +59,7 @@ function MapController({ action, pickMode, onPick, route, ownLocation }) {
   const centeredOnGps = useRef(false);
   useEffect(() => {
     if (!action) return;
-    if (action.type === "center" && action.point) map.flyTo([action.point.lat, action.point.lng], Math.max(map.getZoom(), 16));
+    if (action.type === "center" && action.point) map.flyTo([action.point.lat, action.point.lng], Math.max(map.getZoom(), 18));
     if (action.type === "fit" && action.points.length) {
       const bounds = L.latLngBounds(action.points.map(({ lat, lng }) => [lat, lng]));
       map.fitBounds(bounds, { padding: [48, 48], maxZoom: 14 });
@@ -111,14 +111,16 @@ function SessionMap({ session, members, route, gps, mapAction, pickMode, onPick,
   const routeDestination = draftDestination || route?.destination;
 
   return (
-    <MapContainer center={initialCenter} zoom={12} zoomControl={false} className="map-view">
+    <MapContainer center={initialCenter} zoom={12} maxZoom={19} zoomControl={false} className="map-view">
       <TileLayer
         attribution='Tiles &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community'
         url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+        maxZoom={19}
       />
       <TileLayer
         attribution="Labels &copy; Esri"
         url="https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+        maxZoom={19}
       />
       {routeCoords.length > 1 && (
         <>
