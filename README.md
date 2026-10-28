@@ -43,8 +43,9 @@ En despliegues reales, configura un `JWT_SECRET` aleatorio y largo, HTTPS, `CLIE
 1. Crea un grupo con tu nombre. En el mapa, abre **Grupo → Invitar** para compartir un enlace que contiene el código de la sala o copiar el código de seis caracteres.
 2. Los compañeros abren el enlace, escriben su nombre y se unen directamente a esa sala. También pueden introducir el código desde la pantalla inicial.
 3. Acepta el permiso de ubicación. Si el GPS detecta al menos 5 m de movimiento, el navegador transmite una posición con hora y precisión respetando el intervalo configurado (2 s por defecto). Si permanece quieto, solo envía un pulso de vigencia cada 15 s. El servidor omite cambios menores a 3 m y también limita la frecuencia para proteger la sala.
-4. El líder expande el panel y busca una dirección, barrio o localidad para el origen y destino. Selecciona uno de los lugares encontrados; también puede usar **Usar mi ubicación actual** como origen o elegir un punto tocando el mapa. Al pulsar **Calcular y compartir ruta**, OSRM calcula la ruta real por carretera y todos los integrantes reciben el mismo trazado.
+4. El líder expande el panel y busca una dirección, barrio o localidad para el origen y destino. Selecciona uno de los lugares encontrados; también puede usar **Usar mi ubicación actual** como origen o elegir un punto tocando el mapa. Al pulsar **Calcular y compartir ruta**, OSRM calcula la ruta por carretera, ajusta los extremos a la vía transitable más cercana y todos los integrantes reciben la geometría completa del mismo trazado. Si cambias un extremo, vuelve a calcular para que la línea y la distancia compartidas correspondan a la nueva selección.
 5. El panel del grupo muestra conexión, distancia entre integrantes, progreso sobre la ruta, ETA proporcional a la duración calculada y desviaciones superiores a 300 m. Las posiciones con más de un minuto se indican como antiguas y no se presentan como GPS actual.
+6. Usa **Acercar a mi ubicación** para centrarte con zoom cercano y **Ver ruta completa** para volver a encuadrar todo el trazado. Los controles **+** y **−** permiten ajustar el zoom manualmente.
 
 ## Demo
 
@@ -66,7 +67,7 @@ Los nombres visibles e identificadores se derivan de la membresía autenticada, 
 
 - Los navegadores y sistemas operativos pueden suspender geolocalización y Socket.IO en segundo plano, especialmente con la pantalla bloqueada. Para seguir compartiendo una ruta, mantén Moto Trips visible; esta aplicación web no garantiza seguimiento en segundo plano.
 - El navegador no expone en todos los dispositivos un estado independiente y fiable de “GPS desactivado”; errores y permisos denegados se muestran en el panel.
-- La ETA individual se estima como proporción de la duración de la ruta según el punto más cercano a la geometría. No sustituye a una ETA de tráfico en vivo ni a navegación giro a giro.
+- La ETA individual se estima como proporción de la duración de la ruta según el punto más cercano a la geometría. OSRM usa un perfil vial genérico de conducción y los datos disponibles de las carreteras; no contempla tráfico en vivo ni garantiza restricciones específicas para motocicletas. No sustituye a navegación giro a giro.
 - Las coordenadas de la demo son sintéticas y quedan claramente etiquetadas. Fuera de la demo, solo se muestran posiciones recibidas desde geolocalización.
 - El sistema no guarda historial GPS. PostgreSQL conserva los datos de sala, los nombres de sus miembros y la ruta para que sigan disponibles tras un reinicio.
 
