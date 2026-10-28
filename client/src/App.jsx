@@ -59,19 +59,35 @@ function MapController({ action, pickMode, onPick, route, ownLocation }) {
   const centeredOnGps = useRef(false);
   useEffect(() => {
     if (!action) return;
-    if (action.type === "center" && action.point) map.flyTo([action.point.lat, action.point.lng], Math.max(map.getZoom(), 14));
+    if (action.type === "center" && action.point) map.flyTo([action.point.lat, action.point.lng], Math.max(map.getZoom(), 16));
     if (action.type === "fit" && action.points.length) {
       const bounds = L.latLngBounds(action.points.map(({ lat, lng }) => [lat, lng]));
       map.fitBounds(bounds, { padding: [48, 48], maxZoom: 14 });
     }
+    if (action.type === "fit-route" && route?.geometry?.coordinates?.length > 1) {
+      const bounds = L.latLngBounds(route.geometry.coordinates.map(([lng, lat]) => [lat, lng]));
+      const desktop = window.matchMedia("(min-width: 760px)").matches;
+      const leftInset = desktop ? Math.min(470, window.innerWidth * 0.4) : 36;
+      map.fitBounds(bounds, {
+        paddingTopLeft: [leftInset, 72],
+        paddingBottomRight: [36, desktop ? 72 : Math.min(300, window.innerHeight * 0.38)],
+        maxZoom: 16,
+      });
+    }
     if (action.type === "zoom-in") map.zoomIn();
     if (action.type === "zoom-out") map.zoomOut();
-  }, [action, map]);
+  }, [action, map, route]);
   useEffect(() => {
     const coordinates = route?.geometry?.coordinates;
     if (!coordinates || coordinates.length < 2) return;
     const bounds = L.latLngBounds(coordinates.map(([lng, lat]) => [lat, lng]));
-    map.fitBounds(bounds, { padding: [72, 72], maxZoom: 13 });
+    const desktop = window.matchMedia("(min-width: 760px)").matches;
+    const leftInset = desktop ? Math.min(470, window.innerWidth * 0.4) : 36;
+    map.fitBounds(bounds, {
+      paddingTopLeft: [leftInset, 72],
+      paddingBottomRight: [36, desktop ? 72 : Math.min(300, window.innerHeight * 0.38)],
+      maxZoom: 16,
+    });
   }, [map, route?.updatedAt, route?.geometry]);
   useEffect(() => {
     if (route || !ownLocation || centeredOnGps.current) return;
@@ -104,7 +120,12 @@ function SessionMap({ session, members, route, gps, mapAction, pickMode, onPick,
         attribution="Labels &copy; Esri"
         url="https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
       />
-      {routeCoords.length > 1 && <Polyline positions={routeCoords} pathOptions={{ color: "#3289ff", weight: 6, opacity: 0.9 }} />}
+      {routeCoords.length > 1 && (
+        <>
+          <Polyline positions={routeCoords} pathOptions={{ color: "#ffffff", weight: 9, opacity: 0.82 }} />
+          <Polyline positions={routeCoords} pathOptions={{ color: "#1678ff", weight: 5, opacity: 1 }} />
+        </>
+      )}
       {routeOrigin && <Marker position={[routeOrigin.lat, routeOrigin.lng]} icon={pointIcon("start")} />}
       {routeDestination && <Marker position={[routeDestination.lat, routeDestination.lng]} icon={pointIcon("finish")} />}
       {visibleMembers.map((member, index) => {
@@ -599,6 +620,8 @@ function App() {
     && (now - member.location.timestamp > 60_000 || !member.connected)).length;
   const visibleOrigin = origin || route?.origin;
   const visibleDestination = destination || route?.destination;
+  const routeNeedsUpdate = Boolean(route?.origin && route?.destination && origin && destination
+    && (distanceMeters(origin, route.origin) > 35 || distanceMeters(destination, route.destination) > 35));
 
   return (
     <main className="app-shell">
@@ -625,8 +648,9 @@ function App() {
       </header>
 
       <div className="map-tools">
-        <button className="map-tool" onClick={centerOnMe} aria-label="Centrar en mi ubicación"><LocateFixed size={21} /></button>
+        <button className="map-tool" onClick={centerOnMe} aria-label="Acercar a mi ubicación"><LocateFixed size={21} /></button>
         <button className="map-tool" onClick={() => viewGroup("all")} aria-label="Ver todos los integrantes"><Users size={19} /></button>
+        {route && <button className="map-tool" onClick={() => setMapAction({ type: "fit-route", key: now })} aria-label="Ver ruta completa"><Route size={19} /></button>}
         <button className="map-tool" onClick={() => setMapAction({ type: "zoom-in", key: now })} aria-label="Acercar mapa"><Plus size={19} /></button>
         <button className="map-tool" onClick={() => setMapAction({ type: "zoom-out", key: now })} aria-label="Alejar mapa"><Minus size={19} /></button>
       </div>
@@ -652,6 +676,7 @@ function App() {
           <div className="waypoint-connector" />
           <div><span className="waypoint-dot waypoint-finish" /><span><b>Destino</b><small>{visibleDestination ? destinationLabel || route?.destinationLabel || `${visibleDestination.lat.toFixed(4)}, ${visibleDestination.lng.toFixed(4)}` : "Sin definir"}</small></span></div>
         </div>
+        {routeNeedsUpdate && <p className="notice notice-warning">Cambiaste el origen o destino. La línea y distancia aún corresponden a la ruta anterior; calcula y comparte de nuevo para actualizarlas.</p>}
         {gpsError && <p className="notice notice-warning">{gpsError}</p>}
         {!onlineSocket && !session.demo && <p className="notice notice-warning">Sin conexión con la sala. Reconectando automáticamente; no se envía la ubicación mientras estás desconectado.</p>}
         <div className="route-metrics">
@@ -660,7 +685,7 @@ function App() {
           <div><span>Grupo en línea</span><strong>{connectedCount} / {members.length}</strong></div>
         </div>
         {route?.source === "demo" && <div className="demo-disclaimer">Modo demo: posiciones y trazado ilustrativos; no son ubicaciones reales ni una ruta navegable.</div>}
-        {route?.source === "osrm" && <div className="route-source">Ruta calculada por carretera · OSRM</div>}
+        {route?.source === "osrm" && <div className="route-source">Ruta por carretera ajustada a calles · OSRM</div>}
         {panelExpanded && (
           <>
             <div className="panel-section-heading"><span>Tu grupo</span><button className="text-button small-text-button" onClick={() => setGroupOpen(true)}>Ver lista</button></div>

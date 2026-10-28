@@ -4,7 +4,7 @@ import http from "node:http";
 import jwt from "jsonwebtoken";
 import { Server } from "socket.io";
 import { initializeDatabase } from "./database.js";
-import { distanceMeters, isValidCoordinate, validateLocation } from "./geo.js";
+import { distanceMeters, isValidCoordinate, snapRouteEndpoints, validateLocation } from "./geo.js";
 import { normalizeGeocodingResults, normalizeSearchQuery } from "./geocoding.js";
 import { createRoom, hydrateRooms, joinRoom, publicRoom, removeMember, rooms } from "./rooms.js";
 import { saveRoom } from "./database.js";
@@ -204,10 +204,10 @@ app.post("/api/routes/calculate", bearerMember, async (req, res, next) => {
     const result = await response.json();
     const route = result.routes?.[0];
     if (!route?.geometry?.coordinates?.length) throw new Error("No se encontró una ruta por carretera.");
+    const endpoints = snapRouteEndpoints(result.waypoints, origin, destination);
     res.json({
       route: {
-        origin,
-        destination,
+        ...endpoints,
         originLabel: typeof req.body.originLabel === "string" ? req.body.originLabel.slice(0, 240) : "",
         destinationLabel: typeof req.body.destinationLabel === "string" ? req.body.destinationLabel.slice(0, 240) : "",
         geometry: route.geometry,

@@ -9,6 +9,18 @@ export function isValidCoordinate(point) {
     && point.lng <= 180;
 }
 
+export function snapRouteEndpoints(waypoints, origin, destination) {
+  const toCoordinate = (waypoint, fallback) => {
+    const [lng, lat] = waypoint?.location ?? [];
+    const snapped = { lat, lng };
+    return isValidCoordinate(snapped) ? snapped : fallback;
+  };
+  return {
+    origin: toCoordinate(waypoints?.[0], origin),
+    destination: toCoordinate(waypoints?.[1], destination),
+  };
+}
+
 export function validateLocation(payload) {
   if (!payload || !isValidCoordinate(payload)) return "Coordenadas GPS no válidas.";
   if (!Number.isFinite(payload.accuracy) || payload.accuracy < 0 || payload.accuracy > 10000) {
