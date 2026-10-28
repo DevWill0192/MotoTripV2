@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: moto-trips-qa-api
+    runtime: node
+    plan: free
+    region: ohio
+    buildCommand: npm ci
+    startCommand: npm run start --workspace server
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: moto-trips-qa-db
+          property: connectionString
+      - key: ROUTING_URL
+        value: https://router.project-osrm.org
+      - key: APP_CONTACT_EMAIL
+        sync: false
+
+databases:
+  - name: moto-trips-qa-db
+    databaseName: moto_trips_qa
+    user: moto_trips_qa
+    plan: free
+    region: ohio
+    postgresMajorVersion: "16"
