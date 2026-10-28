@@ -31,6 +31,7 @@ Configura `DATABASE_URL` en `.env` con el valor del ejemplo y reinicia el servid
 - `vercel.json` configura el sitio de Vite para Vercel desde la raíz del monorepo.
 - `render.yaml` define la API Socket.IO y PostgreSQL. En Render, crea un Blueprint desde el repositorio/branch `main` y usa ese archivo; Render solicitará `CLIENT_ORIGIN` (`https://moto-trips-qa.vercel.app`) y `APP_CONTACT_EMAIL`, y generará `JWT_SECRET`.
 - Después del primer deploy, copia la URL pública que Render asignó a la API. En el proyecto Vercel define `VITE_API_URL` con esa URL para **Preview** y **Production**, y vuelve a desplegar. La API solo acepta el origen configurado en `CLIENT_ORIGIN`.
+- Para confirmar que QA está listo, verifica `<URL de Render>/api/health`, crea un grupo, invita un segundo dispositivo y acepta los permisos GPS en ambos.
 - Los planes gratuitos son para QA: el servicio Render puede suspenderse tras 15 minutos inactivo y despertar lentamente; confirma límites y retención vigentes de PostgreSQL en el panel Render.
 
 El despliegue necesita que este directorio esté publicado en un repositorio GitHub conectado a Render. La carpeta de trabajo creada localmente no incluye un remoto Git preconfigurado.
